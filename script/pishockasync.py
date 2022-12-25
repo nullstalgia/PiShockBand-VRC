@@ -20,8 +20,9 @@ verbose=0
 funtype="2"
 fundelaymax="10"
 fundelaymin="0"
-funduration="15"
+funduration="2"
 funintensity="0"
+funtarget=""
 funtouchpointstate="False"
 boolsend='False'
 typesend="beep"
@@ -40,8 +41,12 @@ def set_target(address, *args):
     pitarget=str({args})
     cleantarget=''.join((x for x in pitarget if x.isdigit()))
     arratarget=int(cleantarget)
-    funtarget=pets[arratarget]
-    #print(f"target set to {funtarget}")
+    if arratarget > 0:
+        funtarget=pets[arratarget-1]
+        print(f"target set to {funtarget}")
+    else:
+        funtarget=""
+        print(f"no target selected")
 
 def set_pet_type(adress, *args):
     pitype=str({args})
@@ -76,7 +81,7 @@ def set_pet_duration(address, *args):
     cleanduration=str(piduration.strip("{()},")[:4])
     floatduration=float(cleanduration)
     time=floatduration*15
-    funduration=int(time)
+    funduration=int(round(time))
     #print(funduration)
     #print(cleanduration)
 
@@ -161,7 +166,7 @@ dispatcher.map("/avatar/parameters/pishock/Debug", set_verbose)
 
 
 ip = "127.0.0.1"
-port = 9001
+port = 9101
 
 
 async def loop():
@@ -183,11 +188,14 @@ async def loop():
     global funTPintensity
     await asyncio.sleep(0.1)
     if boolsend == 'True':
-        sleeptime=funduration+1.7
-        print(f"sending {typesend} at {funintensity} for {funduration} seconds")
-        datajson = str({"Username":USERNAME,"Name":NAME,"Code":funtarget,"Intensity":funintensity,"Duration":funduration,"Apikey":APIKEY,"Op":funtype})
-        headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-        sendrequest=requests.post('https://do.pishock.com/api/apioperate', data=datajson, headers=headers)
+        sleeptime=float(funduration)+1.7
+        if funtarget == "":
+            print("No target selected! Not sending shock...")
+        else:
+            print(f"sending {typesend} at {funintensity} for {funduration} seconds")
+            datajson = str({"Username":USERNAME,"Name":NAME,"Code":funtarget,"Intensity":funintensity,"Duration":funduration,"Apikey":APIKEY,"Op":funtype})
+            headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+            sendrequest=requests.post('https://do.pishock.com/api/apioperate', data=datajson, headers=headers)
 
         print(f"waiting {sleeptime} before next command")
         #print(sendrequest)
