@@ -14,10 +14,11 @@ NAME=config['API']['APPNAME']
 pets=config['PETS']['PETS'].split()
 touchpoints=config['TOUCHPOINTS']['TOUCHPOINTS'].split()
 
-
+ip = "127.0.0.1"
+port = 9101
 
 verbose=0
-funtype="2"
+funtype="1"
 fundelaymax="10"
 fundelaymin="0"
 funduration="2"
@@ -27,6 +28,12 @@ funtouchpointstate="False"
 boolsend='False'
 typesend="beep"
 
+# Set an intensity that the script will never send commands above.
+max_intensity = 15
+
+
+# Does not send a 300ms (duration 300) shock at 0 duration unless this is True
+agree_to_zero = False
 
 def set_verbose(address, *args):
     piverbose=str({args})
@@ -164,11 +171,6 @@ dispatcher.map("/avatar/parameters/pishock/Touchpoint_*", set_touchpoint)
 #verbose functions
 dispatcher.map("/avatar/parameters/pishock/Debug", set_verbose)
 
-
-ip = "127.0.0.1"
-port = 9101
-
-
 async def loop():
     global boolsend
     global verbose
@@ -193,7 +195,16 @@ async def loop():
             print("No target selected! Not sending shock...")
         else:
             print(f"sending {typesend} at {funintensity} for {funduration} seconds")
-            datajson = str({"Username":USERNAME,"Name":NAME,"Code":funtarget,"Intensity":funintensity,"Duration":funduration,"Apikey":APIKEY,"Op":funtype})
+            # Limiting intensity
+            if funintensity > max_intensity:
+                print(f"Intensity set too high! Bringing down to {max_intensity}")
+                funintensity = max_intensity
+            # Setting duration to 300ms if set to 0%
+            sent_duration = funduration
+            if agree_to_zero and funduration == 0:
+                sent_duration = 300
+            
+            datajson = str({"Username":USERNAME,"Name":NAME,"Code":funtarget,"Intensity":funintensity,"Duration":sent_duration,"Apikey":APIKEY,"Op":funtype})
             headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
             sendrequest=requests.post('https://do.pishock.com/api/apioperate', data=datajson, headers=headers)
 
@@ -206,7 +217,15 @@ async def loop():
     if funtouchpointstate == 'True':
         sleeptime=funTPduration+1.7
         print(f"touch point sending {typeTPsend} at {funTPintensity} for {funTPduration} seconds")
-        datajson = str({"Username":USERNAME,"Name":NAME,"Code":funtouchpoint,"Intensity":funTPintensity,"Duration":funTPduration,"Apikey":APIKEY,"Op":funTPtype})
+        # Limiting intensity
+        if funTPintensity > max_intensity:
+                print(f"Intensity set too high! Bringing down to {max_intensity}")
+                funTPintensity = max_intensity
+        # Setting duration to 300ms if set to 0%
+        sent_duration = funTPduration
+        if agree_to_zero and funTPduration == 0:
+            sent_duration = 300
+        datajson = str({"Username":USERNAME,"Name":NAME,"Code":funtouchpoint,"Intensity":funTPintensity,"Duration":sent_duration,"Apikey":APIKEY,"Op":funTPtype})
         headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
         sendrequest=requests.post('https://do.pishock.com/api/apioperate', data=datajson, headers=headers)
 
