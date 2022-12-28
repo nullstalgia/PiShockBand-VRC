@@ -42,6 +42,12 @@ max_duration = 5
 # Does not send a 300ms (duration 300) shock at 0 duration unless this is True
 agree_to_zero = True
 
+
+got_target = False
+got_intensity = False
+got_duration = False
+pet_shocker_ready = False
+
 def set_verbose(address, *args):
     piverbose=str({args})
     cleanverbose=''.join((x for x in piverbose if x.isdigit()))
@@ -52,8 +58,10 @@ def set_verbose(address, *args):
 def set_target(address, *args):
     global funtarget
     global pets
+    global got_target
     array_target=args[0]
     if array_target > 0:
+        got_target = True
         funtarget=pets[array_target-1]
         print(f"target set to {funtarget}")
     else:
@@ -72,11 +80,13 @@ def set_pet_type(adress, *args):
     elif funtype == 2:
         typesend="beep"
 
-    #print(funtype)
+    print(f"Type set to: {typesend}")
 
 def set_pet_intensity(address, *args):
     global funintensity
     global verbose
+    global got_intensity
+    got_intensity = True
     floatintensity=args[0]
     intensity=floatintensity*100
     funintensity=int(intensity)
@@ -86,6 +96,8 @@ def set_pet_intensity(address, *args):
 def set_pet_duration(address, *args):
     global funduration
     global verbose
+    global got_duration
+    got_duration = True
     floatduration=args[0]
     time=floatduration*15
     funduration=int(round(time))
@@ -96,7 +108,7 @@ def set_pet_state(address:str, *args) -> None:
     global shocksend
     global verbose
     global quickshocksend
-    print(address)
+    #print(address)
     if address.endswith("Quick"):
         quickshocksend = args[0]
     else:
@@ -152,6 +164,18 @@ def set_TP_duration(address, *args):
     #print(cleanTPduration)
     #print(funTPduration)
 
+def is_pet_shocker_ready():
+    global pet_shocker_ready
+    if not pet_shocker_ready:
+        if got_duration and got_intensity and got_target:
+            pet_shocker_ready = True
+            return True
+    else:
+        return False
+
+# Too lazy to do a proper UI
+# def render_tui()
+
 dispatcher = Dispatcher()
 #dispatchers for pet functions
 dispatcher.map("/avatar/parameters/pishock/Type", set_pet_type)
@@ -186,6 +210,10 @@ async def loop():
     global funTPduration
     global funTPintensity
     await asyncio.sleep(0.1)
+
+    if is_pet_shocker_ready():
+        print(f"Pet Shocker ready! Current type: {typesend}")
+
     if shocksend == True:
         sleeptime=float(funduration)+1.7
         if funtarget == "":
@@ -216,7 +244,7 @@ async def loop():
         await asyncio.sleep(sleeptime)
 
     if quickshocksend == True:
-        sleeptime=float(funduration)+1.7
+        sleeptime=1.7
         if funtarget == "":
             print("No target selected! Not sending shock...")
         else:
